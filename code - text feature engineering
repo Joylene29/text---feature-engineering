@@ -1,0 +1,183 @@
+import pandas as pd
+import numpy as np
+import nltk
+import matplotlib.pyplot as plt
+import seaborn as sns
+import warnings
+import string
+
+df = pd.read_csv("C:/Users/M9506575/Desktop/datasets/train_E6oV3lV.csv")
+
+df
+
+pd.set_option("display.max_rows",500)
+
+pd.set_option("display.max_columns",500)
+
+df.shape
+
+df['tweet'].head()
+
+df.info()
+
+# Data Cleaning 
+
+def remove_pattern(input_txt, pattern):
+    r = re.findall(pattern, input_txt)
+    for i in r:
+        input_txt = re.sub(i, '', input_txt)
+        
+    return input_txt    
+
+import re
+re.compile('<title>(.*)</title>')
+
+# remove twitter handles (@user)
+df['tidy_tweet'] = np.vectorize(remove_pattern)(df['tweet'], "@[\w]*")
+
+df['tidy_tweet'].head()
+
+from nltk.tokenize.casual import EMOTICON_RE
+d=EMOTICON_RE.findall(' '.join(df['tidy_tweet']))
+d
+
+d.count(':d')
+
+
+len(d)
+
+list=d
+
+series=pd.Series(list).astype(str)
+print(series)
+
+#unique emoticons in the data.
+series.unique()
+
+len(series.unique())
+
+# remove special characters, numbers, punctuations
+df['tidy_tweet'] = df['tidy_tweet'].str.replace("[^a-zA-Z#]", " ")
+
+#removing hash symbol from the column
+df['tidy_tweet']=df['tidy_tweet'].str.replace('#','')
+
+df['tidy_tweet']=df['tidy_tweet'].str.replace("[0-9]+"," ")
+
+df
+
+#removing hash symbol from the column
+df['tidy_tweet']=df['tidy_tweet'].str.replace('#','')
+
+df['tidy_tweet'].head()
+
+df
+
+#counting of stop words
+from nltk.corpus import stopwords
+stop = stopwords.words('english')
+
+df['stopwords'] = df['tidy_tweet'].apply(lambda x: len([x for x in x.split() if x in stop]))
+df
+
+#removal of stop words
+from nltk.corpus import stopwords
+stop = stopwords.words('english')
+df['tidy_tweet'] = df['tidy_tweet'].apply(lambda x: " ".join(x for x in x.split() if x not in stop))
+df['tidy_tweet'].head()
+
+#tokenization
+tokenized_tweet = df['tidy_tweet'].apply(lambda x: x.split())
+tokenized_tweet.head(5)
+
+tokenized_tweet
+
+tokenized_tweet.iloc[6]
+
+#stemming 
+from nltk.stem.porter import *
+stemmer = PorterStemmer()
+
+stemming_tweet = tokenized_tweet.apply(lambda x: [stemmer.stem(i) for i in x]) # stemming
+stemming_tweet.head(10)
+
+stemming_tweet.iloc[6]
+
+# converting small words to full english words
+
+#used "replace()" to replace the wordss
+df['tidy_tweet']= df["tidy_tweet"].str.replace("lyft","lift",regex=True)
+
+
+#this didn't work
+replace_values = {'rt':'Retweet','u':'you', 'dm':'direct message', "awsm" : "awesome", "luv" :"love", "b4":"before", "yolo":"you onli live once","xoxo":"kisses","lyf":"life","nyt":"night","wud":"would","wid":"with","omg":"oh my god","2morrow":"tomorrow","lyft":"lift"}
+df = df.replace({"tidy_tweet": replace_values})                                                                                             
+
+df['tidy_tweet']
+
+
+
+# tf-idf and countvectorizer
+
+from sklearn.feature_extraction.text import CountVectorizer
+
+features=CountVectorizer()
+
+features=features.fit_transform(df['tidy_tweet'])
+
+corpus = df['tidy_tweet'].iloc[5]
+
+vectorizer = CountVectorizer()
+X = vectorizer.fit_transform(df['tidy_tweet'].loc[0:2])
+print(vectorizer.get_feature_names())
+print(X.toarray())
+
+print(X.toarray()) 
+
+features
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+vectorizer = TfidfVectorizer()
+X = vectorizer.fit_transform(df['tidy_tweet'].loc[0:1])
+print(vectorizer.get_feature_names())
+print(X.toarray())
+
+
+
+vectorizer = TfidfVectorizer()
+
+tf_idf_features=TfidfVectorizer()
+
+tf_idf_features=tf_idf_features.fit_transform(df['tidy_tweet'])
+
+tf_idf_features
+
+
+
+from sklearn.decomposition import PCA 
+
+#Fitting the PCA algorithm with our Data
+pca = PCA().fit(features)
+#Plotting the Cumulative Summation of the Explained Variance
+plt.figure()
+plt.plot(np.cumsum(pca.explained_variance_ratio_))
+plt.xlabel('Number of Components')
+plt.ylabel('Variance (%)') #for each component
+plt.title('Pulsar Dataset Explained Variance')
+plt.show()
+
+tf_idf_features
+
+from sklearn.decomposition import TruncatedSVD
+svd = TruncatedSVD(n_components = 3000)
+
+tr_features_truncated=svd.fit_transform(tf_idf_features)
+
+tr_features_truncated.shape
+
+tf_idf_features.shape
+
+print(svd.explained_variance_ratio_)  
+
+ print(svd.explained_variance_ratio_.sum())  
